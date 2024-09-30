@@ -6,8 +6,7 @@ from enum import Enum
 import sqlalchemy
 from src import database as db
 
-with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
+
         
 router = APIRouter(
     prefix="/carts",
@@ -33,6 +32,7 @@ def search_orders(
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
 ):
+    
     """
     Search for cart line items by customer name and/or potion sku.
 
@@ -57,6 +57,8 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(sql_to_execute))
 
     return {
         "previous": "",
