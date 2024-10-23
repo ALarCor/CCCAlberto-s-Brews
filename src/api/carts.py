@@ -57,8 +57,7 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
-    with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
+    
 
     return {
         "previous": "",
@@ -77,24 +76,24 @@ def search_orders(
 @router.post("/purchase/")
 def purchase_potion(potion_sku: str, quantity: int):
     if potion_sku == "GREEN_POTION":
-        qry = "SELECT num_green_potions FROM global_inventory"
-        
+        potion_query = "SELECT num_green_potions FROM global_inventory"
+        update_query = "UPDATE global_inventory SET num_green_potions = num_green_potions - :quantity WHERE 1=1"
+    elif potion_sku == "RED_POTION":
+        potion_query = "SELECT num_red_potions FROM global_inventory"
+        update_query = "UPDATE global_inventory SET num_red_potions = num_red_potions - :quantity WHERE 1=1"
+    elif potion_sku == "BLUE_POTION":
+        potion_query = "SELECT num_blue_potions FROM global_inventory"
+        update_query = "UPDATE global_inventory SET num_blue_potions = num_blue_potions - :quantity WHERE 1=1"
+    
+    with db.engine.begin() as connection:
+        current_potions = connection.execute(sqlalchemy.text(potion_query)).scalar()
+
+    if current_potions >= quantity:
         with db.engine.begin() as connection:
-            current_green_potions = connection.execute(sqlalchemy.text(qry)).scalar()
-
-        if current_green_potions >= quantity:
-            sql_update = """
-            UPDATE global_inventory
-            SET num_green_potions = num_green_potions - :quantity
-            WHERE 1=1
-            """
-            with db.engine.begin() as connection:
-                connection.execute(sqlalchemy.text(sql_update), {"quantity": quantity})
-
-            return {"status": "success", "message": f"Purchased {quantity} green potions."}
-        else:
-            return {"status": "error", "message": "Not enough green potions in stock."}
-
+            connection.execute(sqlalchemy.text(update_query), {"quantity": quantity})
+        return {f"Purchased {quantity} {potion_sku}."}
+    else:
+        return {"status": "error", "message": "Not enough potions in stock."}
 
 
 class Customer(BaseModel):
