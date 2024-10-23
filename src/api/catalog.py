@@ -6,17 +6,17 @@ from src import database as db
 
         
 router = APIRouter()
+
 qry = "SELECT gold FROM global_inventory"
 
 @router.get("/catalog/", tags=["catalog"])
 def get_catalog():
-    """
-    Each unique item combination must have only a single price.
-    """
     with db.engine.begin() as connection:
         result = connection.execute((sqlalchemy.text(qry))).scalar()
+    
     print(result)
     return result
+
     return [
             {
                 "sku": "GREEN_POTION",

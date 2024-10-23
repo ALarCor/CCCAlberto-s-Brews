@@ -19,31 +19,15 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
-    """ """
-    print(f"potions delievered: {potions_delivered} order_id: {order_id}")
+   
+    total_green_potions = sum([potion.quantity for potion in potions_delivered if potion.potion_type == [0, 100, 0, 0]])
+
+    sql_to_execute = """
+    UPDATE global_inventory
+    SET num_green_potions = num_green_potions + :total_green_potions
+    WHERE 1=1
+    """
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
+        connection.execute(sqlalchemy.text(sql_to_execute), {"total_green_potions": total_green_potions})
 
-    return "OK"
-
-@router.post("/plan")
-def get_bottle_plan():
-    """
-    Go from barrel to bottle.
-    """
-
-    # Each bottle has a quantity of what proportion of red, blue, and
-    # green potion to add.
-    # Expressed in integers from 1 to 100 that must sum up to 100.
-
-    # Initial logic: bottle all barrels into red potions.
-
-    return [
-            {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": 5,
-            }
-        ]
-
-if __name__ == "__main__":
-    print(get_bottle_plan())
+    return {"status": "success", "total_green_potions_added": total_green_potions}

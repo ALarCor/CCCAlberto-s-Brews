@@ -74,6 +74,28 @@ def search_orders(
         ],
     }
 
+@router.post("/purchase/")
+def purchase_potion(potion_sku: str, quantity: int):
+    if potion_sku == "GREEN_POTION":
+        qry = "SELECT num_green_potions FROM global_inventory"
+        
+        with db.engine.begin() as connection:
+            current_green_potions = connection.execute(sqlalchemy.text(qry)).scalar()
+
+        if current_green_potions >= quantity:
+            sql_update = """
+            UPDATE global_inventory
+            SET num_green_potions = num_green_potions - :quantity
+            WHERE 1=1
+            """
+            with db.engine.begin() as connection:
+                connection.execute(sqlalchemy.text(sql_update), {"quantity": quantity})
+
+            return {"status": "success", "message": f"Purchased {quantity} green potions."}
+        else:
+            return {"status": "error", "message": "Not enough green potions in stock."}
+
+
 
 class Customer(BaseModel):
     customer_name: str
