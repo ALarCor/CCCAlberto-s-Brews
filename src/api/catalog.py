@@ -48,21 +48,19 @@ def get_catalog():
     ]
 
 def sell_potion(color):
-    potion_column = f"num_{color}_potions"
+    potion_type = f"{color}_potion"
     
     with db.engine.begin() as connection:
         
-        result = connection.execute(sqlalchemy.text(f"SELECT {potion_column} FROM global_inventory"))
-        potion_count = result.scalar()
+        available_potions = connection.execute(sqlalchemy.text(
+            "SELECT COALESCE(SUM(change), 0) FROM inventory_ledger WHERE item_type = :potion_type"
+        ), {"potion_type": potion_type}).scalar()
         
-        if potion_count > 0:
-           
-            sql = f"""
-            UPDATE global_inventory
-            SET {potion_column} = {potion_column} - 1
-            WHERE {potion_column} > 0
-            """
-            connection.execute(sqlalchemy.text(sql))
+        if available_potions > 0:
+            
+            connection.execute(sqlalchemy.text(
+                "INSERT INTO inventory_ledger (item_type, change, description) VALUES (:potion_type, -1, 'Potion sold')"
+            ), {"potion_type": potion_type})
             print(f"{color.capitalize()} potion sold.")
         else:
             print(f"No {color} potions available to sell.")

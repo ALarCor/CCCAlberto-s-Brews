@@ -1,3 +1,5 @@
+
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
@@ -15,11 +17,15 @@ router = APIRouter(
 
 @router.get("/audit")
 def get_inventory():
+    with db.engine.begin() as connection:
+        audit_data = {
+            "gold": connection.execute(sqlalchemy.text("SELECT COALESCE(SUM(change), 0) FROM inventory_ledger WHERE item_type = 'gold'")).scalar(),
+            "number_of_potions": connection.execute(sqlalchemy.text("SELECT COALESCE(SUM(change), 0) FROM inventory_ledger WHERE item_type = 'potion'")).scalar(),
+            "ml_in_barrels": connection.execute(sqlalchemy.text("SELECT COALESCE(SUM(change), 0) FROM inventory_ledger WHERE item_type = 'ml'")).scalar(),
+        }
+    return audit_data
 
-    
-    return {"number_of_potions": 0, "ml_in_barrels": 0, "gold": 0}
 
-# Gets called once a day
 @router.post("/plan")
 def get_capacity_plan():
     """ 
@@ -36,7 +42,7 @@ class CapacityPurchase(BaseModel):
     potion_capacity: int
     ml_capacity: int
 
-# Gets called once a day
+
 @router.post("/deliver/{order_id}")
 def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     """ 
